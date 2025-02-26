@@ -818,6 +818,18 @@
             <help>Unix settings</help>
           </properties>
           <children>
+            <node name="coredump">
+              <properties>
+                <help>Core dump</help>
+              </properties>
+              <children>
+                <leafNode name="directory">
+                  <properties>
+                    <help>Folder containing coredump files</help>
+                  </properties>
+                </leafNode>
+              </children>
+            </node>
             <leafNode name="poll-sleep-usec">
               <properties>
                 <help>Add a fixed-sleep between main loop poll</help>

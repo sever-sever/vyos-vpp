@@ -3,13 +3,16 @@
 unix {
     nodaemon
     log /var/log/vpp.log
-    full-coredump
     cli-listen /run/vpp/cli.sock
     gid vpp
     # exec /etc/vpp/bootstrap.vpp
 {% if unix is vyos_defined %}
 {%     if unix.poll_sleep_usec is vyos_defined %}
     poll-sleep-usec {{ unix.poll_sleep_usec }}
+{%     endif %}
+{%     if unix.coredump is vyos_defined %}
+    coredump-size unlimited
+    full-coredump
 {%     endif %}
 {% endif %}
 }

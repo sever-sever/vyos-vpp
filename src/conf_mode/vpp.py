@@ -16,6 +16,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import os
+
 from pathlib import Path
 
 from psutil import virtual_memory
@@ -32,7 +34,11 @@ from vyos.ifconfig import Section
 from vyos.template import render
 from vyos.utils.boot import boot_configuration_complete
 from vyos.utils.process import call
-from vyos.utils.system import sysctl_read, sysctl_apply
+from vyos.utils.system import (
+    sysctl_apply,
+    sysctl_read,
+    sysctl_write,
+)
 
 from vyos.vpp import VPPControl
 from vyos.vpp import control_host
@@ -326,6 +332,10 @@ def verify(config):
 
     if 'settings' not in config:
         raise ConfigError('"settings interface" is required but not set!')
+
+    if 'coredump' in config.get('settings', {}).get('unix', {}):
+        if 'directory' not in config['settings']['unix']['coredump']:
+            raise ConfigError('Coredump directory must be configured!')
 
     if 'interface' not in config['settings']:
         raise ConfigError('"settings interface" is required but not set!')
@@ -686,6 +696,17 @@ def apply(config):
 
         # Syncronize routes via LCP
         vpp_control.lcp_resync()
+
+        # Coredump
+        if config.get('settings').get('unix', {}).get('coredump', {}).get('directory'):
+            coredump_dir = config['settings']['unix']['coredump']['directory']
+            if not os.path.exists(coredump_dir):
+                os.makedirs(coredump_dir)
+            # Add sysctl options required for coredump
+            sysctl_write('debug.exception-trace', '1')
+            sysctl_write('kernel.core_pattern', f'{coredump_dir}/%e-%t')
+            sysctl_write('fs.suid_dumpable', '2')
+            call('ulimit -c unlimited')
 
     # Save persistent config
     if 'persist_config' in config and config['persist_config']:
